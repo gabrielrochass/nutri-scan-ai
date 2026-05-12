@@ -61,6 +61,12 @@ export default function RootLayout({
               >
                 Nova sessão
               </Link>
+              <Link
+                href="/docs"
+                className="hover:text-foreground transition-colors"
+              >
+                Documentação
+              </Link>
             </nav>
           </div>
         </header>

@@ -95,12 +95,20 @@ export default async function HomePage() {
                 os presentes em planilha pronta para o SIGAA.
               </p>
             </div>
-            <Link
-              href="/sessions/new"
-              className={cn(buttonVariants({ size: "lg" }))}
-            >
-              <Plus /> Abrir nova sessão
-            </Link>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href="/docs"
+                className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
+              >
+                Documentação
+              </Link>
+              <Link
+                href="/sessions/new"
+                className={cn(buttonVariants({ size: "lg" }))}
+              >
+                <Plus /> Abrir nova sessão
+              </Link>
+            </div>
           </div>
         </div>
 
