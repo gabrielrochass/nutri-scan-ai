@@ -3,6 +3,8 @@ export type AttendanceDTO = {
   name: string;
   matricula: string;
   distanceM: number;
+  lat: number;
+  lon: number;
   createdAt: string;
 };
 

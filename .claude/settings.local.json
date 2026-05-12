@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --no-src-dir --import-alias \"@/*\")",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "PowerShell(npm install --no-audit --no-fund --loglevel=error \"@deck.gl/core@^9.0.0\" \"@deck.gl/react@^9.0.0\" \"@deck.gl/layers@^9.0.0\" \"@deck.gl/aggregation-layers@^9.0.0\" 2>&1)",
+      "PowerShell(npm run lint 2>&1)"
     ]
   }
 }

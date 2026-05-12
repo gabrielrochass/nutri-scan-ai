@@ -214,8 +214,8 @@ function SessionGrid({
               <Clock className="size-4" />
             )}
           </div>
-          <p className="text-sm font-medium">{emptyTitle}</p>
-          <p className="max-w-sm text-xs leading-relaxed text-muted-foreground">
+          <p className="text-lg font-medium">{emptyTitle}</p>
+          <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
             {emptyHint}
           </p>
         </CardContent>

@@ -172,6 +172,8 @@ export async function POST(request: Request, { params }: Params) {
         name: true,
         matricula: true,
         distanceM: true,
+        lat: true,
+        lon: true,
         createdAt: true,
       },
     });
@@ -181,6 +183,8 @@ export async function POST(request: Request, { params }: Params) {
       name: created.name,
       matricula: created.matricula,
       distanceM: created.distanceM,
+      lat: created.lat,
+      lon: created.lon,
       createdAt: created.createdAt.toISOString(),
     };
     emitAttendance(session.id, dto);

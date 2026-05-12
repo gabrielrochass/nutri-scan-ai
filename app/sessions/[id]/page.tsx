@@ -26,6 +26,7 @@ import { Separator } from "@/components/ui/separator";
 import { SessionQrCard } from "@/components/sessions/session-qr-card";
 import { LiveAttendanceList } from "@/components/sessions/live-attendance-list";
 import { CloseSessionButton } from "@/components/sessions/close-session-button";
+import { Attendance3DMap } from "@/components/sessions/attendance-3d-map";
 import { prisma } from "@/lib/prisma";
 import { cn } from "@/lib/utils";
 import type { AttendanceDTO } from "@/lib/dto";
@@ -67,6 +68,8 @@ export default async function SessionDetailPage({ params, searchParams }: Props)
           name: true,
           matricula: true,
           distanceM: true,
+          lat: true,
+          lon: true,
           createdAt: true,
         },
       },
@@ -83,6 +86,8 @@ export default async function SessionDetailPage({ params, searchParams }: Props)
     name: a.name,
     matricula: a.matricula,
     distanceM: a.distanceM,
+    lat: a.lat,
+    lon: a.lon,
     createdAt: a.createdAt.toISOString(),
   }));
 
@@ -220,6 +225,20 @@ export default async function SessionDetailPage({ params, searchParams }: Props)
           sessionId={session.id}
           initialAttendances={attendances}
           initiallyClosed={closed}
+        />
+      </div>
+
+      <div className="mt-6">
+        <Attendance3DMap
+          sessionId={session.id}
+          centerLat={session.centerLat}
+          centerLon={session.centerLon}
+          radiusM={session.radiusM}
+          attendancesWithCoords={attendances.map((a) => ({
+            ...a,
+            lat: a.lat,
+            lon: a.lon,
+          }))}
         />
       </div>
     </main>
