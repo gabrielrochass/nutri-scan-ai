@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Session {
+  id              String   @id @default(cuid())
+  className       String
+  centerLat       Float
+  centerLon       Float
+  radiusM         Int      @default(50)
+  tokenHash       String   @unique
+  createdAt       DateTime @default(now())
+  expiresAt       DateTime
+  closedAt        DateTime?
+  createdByLabel  String?
+
+  attendances AttendanceRecord[]
+  rejections  RejectedAttempt[]
+
+  @@index([expiresAt])
+}
+
+model AttendanceRecord {
+  id              String   @id @default(cuid())
+  sessionId       String
+  name            String
+  matricula       String
+  lat             Float
+  lon             Float
+  accuracyM       Float?
+  distanceM       Float
+  fingerprintHash String
+  userAgent       String
+  ip              String?
+  ipHash          String?
+  createdAt       DateTime @default(now())
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, fingerprintHash])
+  @@unique([sessionId, matricula])
+  @@index([sessionId, createdAt])
+}
+
+model RejectedAttempt {
+  id              String   @id @default(cuid())
+  sessionId       String
+  reason          String
+  name            String?
+  matricula       String?
+  lat             Float?
+  lon             Float?
+  distanceM       Float?
+  fingerprintHash String?
+  userAgent       String?
+  createdAt       DateTime @default(now())
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, createdAt])
+}
