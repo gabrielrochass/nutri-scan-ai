@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: presenca-geo
+    runtime: node
+    region: oregon
+    plan: starter
+    branch: main
+    rootDir: .
+    autoDeploy: true
+    buildCommand: npm install && npx prisma generate && npx prisma migrate deploy && npm run build
+    startCommand: npm run start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: file:/var/data/prod.db
+      - key: ATTENDANCE_SECRET
+        generateValue: true
+      - key: NPM_CONFIG_PRODUCTION
+        value: "false"
+    disk:
+      name: sqlite-data
+      mountPath: /var/data
+      sizeGB: 1

@@ -18,11 +18,12 @@ Aplicação Next.js para substituir a chamada manual em sala de aula. O docente 
 - [7. Referência da API](#7-referência-da-api)
 - [8. LGPD e privacidade](#8-lgpd-e-privacidade)
 - [9. Como rodar localmente](#9-como-rodar-localmente)
-- [10. Roteiro de testes (E2E manual)](#10-roteiro-de-testes-e2e-manual)
-- [11. Próximos passos](#11-próximos-passos)
-- [12. Backlog de funcionalidades futuras](#12-backlog-de-funcionalidades-futuras)
-- [13. Limitações conhecidas](#13-limitações-conhecidas)
-- [14. Estrutura do repositório](#14-estrutura-do-repositório)
+- [10. Deploy no Render](#10-deploy-no-render)
+- [11. Roteiro de testes (E2E manual)](#11-roteiro-de-testes-e2e-manual)
+- [12. Próximos passos](#12-próximos-passos)
+- [13. Backlog de funcionalidades futuras](#13-backlog-de-funcionalidades-futuras)
+- [14. Limitações conhecidas](#14-limitações-conhecidas)
+- [15. Estrutura do repositório](#15-estrutura-do-repositório)
 
 ---
 
@@ -327,7 +328,79 @@ next dev --experimental-https
 
 ---
 
-## 10. Roteiro de testes (E2E manual)
+## 10. Deploy no Render
+
+A plataforma já está configurada para deploy no [Render](https://render.com) via blueprint. O arquivo [`render.yaml`](./render.yaml) na raiz declara o serviço, o disco persistente do SQLite e as variáveis de ambiente.
+
+### Pré-requisitos para o Render
+
+- Repositório no GitHub/GitLab.
+- Conta no Render conectada ao repositório.
+
+### Passo a passo
+
+1. No dashboard do Render, clique em **New → Blueprint**.
+2. Selecione o repositório `presenca-geo`.
+3. O Render lê o `render.yaml` e propõe:
+   - Web Service `presenca-geo` (Node, plano **Starter**, região **Oregon**).
+   - Disco persistente `sqlite-data` montado em `/var/data` (1 GB).
+   - Variáveis: `DATABASE_URL`, `ATTENDANCE_SECRET` (gerado automaticamente), `NODE_ENV`, `NPM_CONFIG_PRODUCTION`.
+4. Clique em **Apply**. O Render executa o build:
+
+   ```bash
+   npm install
+   npx prisma generate
+   npx prisma migrate deploy
+   npm run build
+   ```
+
+5. Após o boot, acesse `https://presenca-geo.onrender.com` (ou o subdomínio sugerido pelo Render).
+6. HTTPS é provisionado automaticamente — a API `navigator.geolocation` funciona no celular sem túnel.
+
+### O que cada decisão arquitetural faz
+
+| Componente | Por que está assim |
+| --- | --- |
+| **Plano Starter (US$7/mês)** | Sem spin-down. Sessões SSE permanecem abertas durante toda a aula. No plano Free o serviço hiberna após 15 min ociosos e o cold start (~30 s) interrompe demonstrações. |
+| **Persistent Disk em `/var/data`** | SQLite precisa de filesystem persistente entre deploys/restarts. Sem o disco, o `prod.db` seria recriado vazio a cada deploy. |
+| **`ATTENDANCE_SECRET` com `generateValue: true`** | O Render gera um segredo aleatório forte na primeira aplicação do blueprint. Não há segredo hardcoded no repositório. |
+| **`binaryTargets` no `schema.prisma`** | Inclui binaries `debian-openssl-3.0.x` e `linux-musl-openssl-3.0.x`, garantindo que o query engine do Prisma carregue em qualquer base de imagem que o Render use. |
+| **`prisma` em `dependencies`** | Necessário para o build no Render conseguir rodar `prisma migrate deploy`. O `postinstall` também depende disso. |
+| **`NPM_CONFIG_PRODUCTION=false`** | Garante que devDependencies (ESLint, TypeScript) estejam disponíveis durante o build. |
+
+### Promovendo para custom domain (opcional)
+
+Aba **Settings → Custom Domain**. Adicione o CNAME apontando para o subdomínio gerado pelo Render. SSL é renovado automaticamente.
+
+### Migrações futuras
+
+Cada `git push` para a branch `main` aciona um novo build. O comando `npx prisma migrate deploy` aplica novas migrações sem perder dados (atualiza somente o schema; o disco persiste).
+
+### Caveats e troubleshooting
+
+- **Free tier:** disco persistente **não é incluído**. Se quiser plano Free, migre para Postgres hospedado (Neon free funciona) e ajuste `DATABASE_URL` no dashboard do Render.
+- **EventEmitter (SSE) em restart:** quando o Render reinicia o serviço (deploy, OOM, plano Free hibernando), os listeners SSE caem. O cliente reconecta automaticamente via `EventSource` nativo.
+- **Cold start no Free:** primeira requisição após 15 min ociosos demora ~30 s. Inaceitável para apresentação ao vivo — use Starter.
+- **Logs:** aba **Logs** do serviço. Para depurar tokens inválidos / 401, basta filtrar por `INVALID_TOKEN`.
+
+### Variáveis de ambiente declaradas
+
+```env
+NODE_ENV=production
+DATABASE_URL=file:/var/data/prod.db
+ATTENDANCE_SECRET=<gerado pelo Render>
+NPM_CONFIG_PRODUCTION=false
+```
+
+Caso queira gerar manualmente o segredo:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+---
+
+## 11. Roteiro de testes (E2E manual)
 
 1. **Criar sessão.** Acesse `/sessions/new` no desktop, clique "Usar minha localização", defina turma, raio = 50 m, validade = 5 min. Submeter → redireciona para `/sessions/<id>?t=<token>` com QR Code visível.
 2. **Marcar presença.** No celular (sob HTTPS), escaneie o QR. Preencha nome + matrícula, marque o consentimento, toque "Marcar presença". Permita localização. Resultado: "Presença confirmada" com a distância.
@@ -345,7 +418,7 @@ next dev --experimental-https
 
 ---
 
-## 11. Próximos passos
+## 12. Próximos passos
 
 | Prioridade | Item | Esforço |
 |---|---|---|
@@ -359,7 +432,7 @@ next dev --experimental-https
 
 ---
 
-## 12. Backlog de funcionalidades futuras
+## 13. Backlog de funcionalidades futuras
 
 - **Roster importável.** Importar lista de matrícula da turma (CSV do SIGAA) para validar a matrícula no envio e gerar relatório de **faltas reais** (não só presentes).
 - **Calendário recorrente.** Criar sessões para todas as aulas do semestre de uma vez.
@@ -378,7 +451,7 @@ next dev --experimental-https
 
 ---
 
-## 13. Limitações conhecidas
+## 14. Limitações conhecidas
 
 - **Sem autenticação do docente.** Qualquer pessoa com o id de uma sessão pode encerrá-la via `PATCH`. Aceitável para o protótipo acadêmico; obrigatório resolver antes de produção.
 - **Fingerprint pode colidir** em pares de dispositivos idênticos (mesmo iPhone, mesma versão de iOS, mesma locale). A constraint `@@unique([sessionId, matricula])` cobre o caso prático.
@@ -391,7 +464,7 @@ next dev --experimental-https
 
 ---
 
-## 14. Estrutura do repositório
+## 15. Estrutura do repositório
 
 ```
 app/
